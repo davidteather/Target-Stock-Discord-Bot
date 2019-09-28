@@ -59,6 +59,13 @@ Example settings.json
 
 **discord_token** Your discord API token for your bot. [Here](https://www.writebots.com/discord-bot-token/) is a good article on how to get your bot's api token.
 
+
+Example proxies.txt
+```
+157.245.212.215:3128
+```
+**Each Line** Should be a fast close to the server hosting this script proxy. There's a free proxy in there for convience it's located in the USA.
+
 ### Executing the program
 
 Once you have all of the json files configured as you would like simpily run the command below.
@@ -69,12 +76,12 @@ python main.py
 
 To use the bot just type in any channel the bot has permission to just use
 ```
-!target-search <DHCI> <ZipCode>
+!target <DHCI> <ZipCode>
 ```
 
 Example
 ```
-!target-search 049-08-0605 20001
+!target 049-08-0605 20001
 ```
 
 ## Built With

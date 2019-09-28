@@ -11,7 +11,8 @@ class MyClient(discord.Client):
         self.checkUrls = []
         super().__init__(*args, **kwargs)
 
-    def checkStock(self, DPCI):
+
+    def checkStock(self, DPCI, zipcode):
         # Selenium stuff
         options = Options()
         options.headless = True
@@ -20,35 +21,41 @@ class MyClient(discord.Client):
         driver.set_window_size(1920, 1080)
 
         # Gets webpage
-        driver.get("https://www.target.com/s?searchTerm=" + str(DPCI))
+        driver.get("https://brickseek.com/target-inventory-checker/")
         time.sleep(1)
+        driver.find_element_by_id('inventory-checker-form-sku').send_keys(DPCI)
+        driver.find_element_by_id('inventory-checker-form-zip').send_keys(zipcode)
+        driver.find_elements_by_xpath('//button')[1].click()
+        time.sleep(2)
 
-        outofStock = True
-        try:
-            url = driver.find_element_by_xpath("//div[@class='h-display-flex']/a").get_attribute('href')
-        except:
-            url = "google.com"
-            outofStock = True
-            
-        
-        driver.get(url)
-        time.sleep(1)
+        # Product Stats
+        img = driver.find_element_by_xpath('//div/img').get_attribute('src')
+        productUrl = driver.find_elements_by_xpath("//a[@class='item-overview__actions-item']")[1].get_attribute('href')
 
-        try:
-            thing = driver.find_element_by_xpath('//div[@data-test="store-out-of-stock-message"]')
-            outofStock = True
-        except:
-            try:
-                thing = driver.find_element_by_xpath('//span[@class="h-text-greenDark h-display-inline-block h-text-bold"]')
-                outofStock = False
-                inStore = True
-            except:
-                thing = driver.find_element_by_xpath('//span[@class="h-text-orangeDark h-display-inline-block h-text-bold"]')
-                inStore= False
+        # Gets the near stores
+        store1 = driver.find_elements_by_xpath("//div[@class='table__row']")[0]
+        store2 = driver.find_elements_by_xpath("//div[@class='table__row']")[1]
+
+
+        stock1 = driver.find_elements_by_xpath("//div[@class='table__row']/div[@class='table__cell inventory-checker-table__availability']/div/div/span")[0].text.strip()
+        addr1 = driver.find_elements_by_xpath("//div[@class='table__row']/div[@class='table__cell table__cell--align-left inventory-checker-table__store']/div/address")[0].text.strip().replace("Google Maps", "").replace("Apple Maps", "")
+
+
+        stock2 = driver.find_elements_by_xpath("//div[@class='table__row']/div[@class='table__cell inventory-checker-table__availability']/div/div/span")[1].text.strip()
+        addr2 = driver.find_elements_by_xpath("//div[@class='table__row']/div[@class='table__cell table__cell--align-left inventory-checker-table__store']/div/address")[1].text.strip().replace("Google Maps", "").replace("Apple Maps", "")
 
         driver.quit()
 
-        return (outofStock, inStore)
+        if stock1 == "In Stock":
+            return (False, True, img, addr1, "Yes", productUrl)
+        elif stock2 == "In Stock":
+            return (False, True, img, addr2, "Yes", productUrl)
+        elif stock1 == "Limited Stock":
+            return (False, True, img, addr1, "Limited Stock", productUrl)
+        elif stock2 == "Limited Stock":
+            return (False, True, img, addr1, "Limited Stock", productUrl)
+        else:
+            return (False, False, img, addr1, "No", productUrl)
 
 
 
@@ -66,14 +73,13 @@ class MyClient(discord.Client):
         if message.content.startswith('!target-search'):
             text = message.content
 
-            (outofStock, inStore) = self.checkStock(text.split("!target-search ")[1])
+            (outofStock, inStore, img, address, msg, url) = self.checkStock(text.split("!target-search ")[1].split(" ")[0], text.split("!target-search ")[1].split(" ")[1])
 
-            if outofStock == True and inStore == False:
-                await message.channel.send("That product is not in stock!")
-            elif inStore == True:
-                await message.channel.send("That product is in stock!")
-            else:
-                await message.channel.send("That product is in stock!")
+            embed=discord.Embed(title=text.split("!target-search ")[1].split(" ")[0], url=url)
+            embed.set_thumbnail(url=img)
+            embed.add_field(name="In Stock?", value=msg, inline=True)
+            embed.add_field(name="Location", value=address, inline=True)
+            await message.channel.send(embed=embed)
 
 with open('settings.json', 'r') as data:
     json = json.load(data)

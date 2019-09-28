@@ -69,12 +69,12 @@ python main.py
 
 To use the bot just type in any channel the bot has permission to just use
 ```
-!target-search DHCI
+!target-search <DHCI> <ZipCode>
 ```
 
 Example
 ```
-!target-search 049-08-0605
+!target-search 049-08-0605 20001
 ```
 
 ## Built With
